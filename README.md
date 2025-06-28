@@ -89,7 +89,7 @@ ORDER BY
 | flutter    | 27283         | 6021210         |
 | node.js    | 26220         | 5828213         |
 
-With tens of thousands of questions for each, any of the above subjects is a viable choice for my tutoring agency.  
+With tens of thousands of questions for each, any of the above subjects is a viable choice for my agency to teach.  
 I will choose Python as my agency's first tutoring subject.  
 
 Now that I have a subject that's clearly in demand, I'll need to find qualified Python tutors to teach at my agency.  
@@ -101,23 +101,43 @@ To find qualified Python tutors, I'll write a query to identify the ten users wi
 **Query**
 
 ```sql
-DECLARE @Subject NVARCHAR(35) = LOWER('python'); -- specify the subject
+-- Analyze top contributors with accepted answers for a specific tag
+DECLARE @Subject NVARCHAR(35) = 'python'; -- filter subject tag
+
+WITH AcceptedAnswersLastYear AS (
+SELECT
+   a.Id,
+   a.OwnerUserId,
+   a.CreationDate,
+   q.Id AS QuestionId
+FROM
+   Posts AS a
+INNER JOIN
+   Posts AS q ON a.ParentId = q.Id
+WHERE
+   a.PostTypeId = 2 -- Answers only
+   AND a.Id = q.AcceptedAnswerId -- Only accepted answers
+   AND a.CreationDate >= DATEADD(year, -1, GETDATE()) -- Last 1 year
+)
 
 SELECT TOP 10
-    Users.Id AS UserId,
-    Users.DisplayName,
-    COUNT(*) AS AcceptedAnswersCount  
-FROM Users
-    INNER JOIN Posts AS Answers ON Users.Id = Answers.OwnerUserId 
-    INNER JOIN Posts AS Questions ON Answers.ParentId = Questions.Id
-    INNER JOIN PostTags ON Questions.Id = PostTags.PostId
-    INNER JOIN Tags ON PostTags.TagId = Tags.Id
-WHERE Tags.TagName = @Subject
-    AND Answers.PostTypeId = 2 -- Answers only
-    AND Answers.Id = Questions.AcceptedAnswerId -- Accepted answers only
-    AND Answers.CreationDate >= DATEADD(year, -1, GETDATE()) -- Within the last year
-GROUP BY Users.Id, Users.DisplayName
-ORDER BY AcceptedAnswersCount DESC; -- Sorting by users with the most accepted answers
+    u.Id AS UserId,
+    u.DisplayName,
+    COUNT(aa.Id) AS AcceptedAnswersCount
+FROM
+   Users u
+INNER JOIN
+   AcceptedAnswersLastYear AS aa ON u.Id = aa.OwnerUserId
+INNER JOIN
+   PostTags AS pt ON aa.QuestionId = pt.PostId
+INNER JOIN
+   Tags AS t ON pt.TagId = t.Id
+WHERE
+   t.TagName = @Subject
+GROUP BY
+   u.Id, u.DisplayName
+ORDER BY
+   AcceptedAnswersCount DESC;
 ```
 
 **Result**
