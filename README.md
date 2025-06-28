@@ -47,17 +47,31 @@ To decide which subject(s) my agency should tutor, I'll write a query to identif
 **Query**  
 
 ```sql
+-- Top 10 tags with the highest question volume in the past year
+WITH RecentQuestions AS (
+SELECT
+   Id, ViewCount
+FROM
+   Posts
+WHERE
+   PostTypeId = 1 -- Questions only
+   AND CreationDate >= DATEADD(year, -1, GETDATE())  -- Last 1 year
+)
+
 SELECT TOP 10
-    Tags.TagName AS Subject, 
-    COUNT(*) AS QuestionCount,
-    SUM(Questions.ViewCount) AS TotalViewCount
-FROM Tags
-    INNER JOIN PostTags ON Tags.Id = PostTags.TagId
-    INNER JOIN Posts AS Questions ON PostTags.PostId = Questions.Id
-WHERE Questions.PostTypeId = 1 -- Questions only
-    AND Questions.CreationDate >= DATEADD(year, -1, GETDATE()) -- Within the last year
-GROUP BY Tags.TagName
-ORDER BY QuestionCount DESC; -- Sorting by subjects with the most questions
+    t.TagName AS Subject,
+    COUNT(q.Id) AS QuestionCount,
+    SUM(q.ViewCount) AS TotalViewCount
+FROM
+   Tags t
+INNER JOIN
+   PostTags pt ON t.Id = pt.TagId
+INNER JOIN
+   RecentQuestions q ON pt.PostId = q.Id
+GROUP BY
+   t.TagName
+ORDER BY
+   QuestionCount DESC;
 ```
 
 **Result**  
