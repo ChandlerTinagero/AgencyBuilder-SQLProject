@@ -12,9 +12,9 @@ Stack Overflow is a popular online community and question-and-answer platform fo
 
 The goal of this project is to use Stack Overflow's database to help build a tech-focused tutoring agency.  
 I'm specifically interested in using the database to inform the following decisions:
-1. Determining which subject to tutor
-2. Identifying potential tutors with expertise in this subject
-3. Identifying potential students who need help in this subject
+1. Determining which subject(s) to tutor.
+2. Identifying potential tutors with expertise in this subject.
+3. Identifying potential students who need help in this subject.
 
 ## The Data
 
