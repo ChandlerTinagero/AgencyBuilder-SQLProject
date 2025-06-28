@@ -50,7 +50,8 @@ To decide which subject(s) my agency should tutor, I'll write a query to identif
 -- Top 10 tags with the highest question volume in the past year
 WITH RecentQuestions AS (
 SELECT
-   Id, ViewCount
+   Id,
+   ViewCount
 FROM
    Posts
 WHERE
@@ -59,15 +60,15 @@ WHERE
 )
 
 SELECT TOP 10
-    t.TagName AS Subject,
-    COUNT(q.Id) AS QuestionCount,
-    SUM(q.ViewCount) AS TotalViewCount
+   t.TagName AS Subject,
+   COUNT(q.Id) AS QuestionCount,
+   SUM(q.ViewCount) AS TotalViewCount
 FROM
-   Tags t
+   Tags AS t
 INNER JOIN
-   PostTags pt ON t.Id = pt.TagId
+   PostTags AS pt ON t.Id = pt.TagId
 INNER JOIN
-   RecentQuestions q ON pt.PostId = q.Id
+   RecentQuestions AS q ON pt.PostId = q.Id
 GROUP BY
    t.TagName
 ORDER BY
@@ -102,7 +103,7 @@ To find qualified Python tutors, I'll write a query to identify the ten users wi
 
 ```sql
 -- Analyze top contributors with accepted answers for a specific tag
-DECLARE @Subject NVARCHAR(35) = 'python'; -- filter subject tag
+DECLARE @SubjectTag NVARCHAR(35) = 'python'; -- filter subject tag
 
 WITH AcceptedAnswersLastYear AS (
 SELECT
@@ -121,9 +122,9 @@ WHERE
 )
 
 SELECT TOP 10
-    u.Id AS UserId,
-    u.DisplayName,
-    COUNT(aa.Id) AS AcceptedAnswersCount
+   u.Id AS UserId,
+   u.DisplayName,
+   COUNT(aa.Id) AS AcceptedAnswersCount
 FROM
    Users u
 INNER JOIN
@@ -133,7 +134,7 @@ INNER JOIN
 INNER JOIN
    Tags AS t ON pt.TagId = t.Id
 WHERE
-   t.TagName = @Subject
+   t.TagName = @SubjectTag
 GROUP BY
    u.Id, u.DisplayName
 ORDER BY
@@ -166,21 +167,41 @@ To find potential Python students, I'll write a query to identify the ten users 
 **Query**
 
 ```sql
-DECLARE @Tag NVARCHAR(35) = LOWER('python'); -- specify the tag
+-- Top 10 users with the most unanswered questions for a given tag in the last 6 months
+DECLARE @SubjectTag NVARCHAR(35) = 'python'; -- filter subject tag
 
-SELECT TOP 10 Users.Id AS UserId, 
-    Users.DisplayName, 
-    COUNT(*) AS UnansweredQuestionsCount
-FROM Users
-    INNER JOIN Posts AS Questions ON Users.Id = Questions.OwnerUserId
-    INNER JOIN PostTags ON Questions.Id = PostTags.PostId
-    INNER JOIN Tags ON PostTags.TagId = Tags.Id
-WHERE Tags.TagName = @Tag
-    AND Questions.PostTypeId = 1 -- Questions only
-    AND Questions.AcceptedAnswerId IS NULL -- Unanswered questions only
-    AND Questions.CreationDate >= DATEADD(month, -6, GETDATE()) -- Within the last six months
-GROUP BY Users.Id, Users.DisplayName
-ORDER BY UnansweredQuestionsCount DESC -- Sorting by users with the most ananswered questions
+WITH RecentUnansweredQuestions AS (
+SELECT
+   q.Id,
+   q.OwnerUserId,
+   q.CreationDate
+FROM
+   Posts AS q
+WHERE
+   q.PostTypeId = 1  -- Questions only
+   AND q.AcceptedAnswerId IS NULL  -- Unanswered questions
+   AND q.CreationDate >= DATEADD(month, -6, GETDATE())  -- Last 6 months
+)
+
+SELECT TOP 10
+   u.Id AS UserId,
+   u.DisplayName,
+   COUNT(q.Id) AS UnansweredQuestionsCount
+FROM
+   Users AS u
+INNER JOIN
+   RecentUnansweredQuestions AS q ON u.Id = q.OwnerUserId
+INNER JOIN
+   PostTags AS pt ON q.Id = pt.PostId
+INNER JOIN
+   Tags AS t ON pt.TagId = t.Id
+WHERE
+   t.TagName = @SubjectTag
+GROUP BY
+   u.Id,
+   u.DisplayName
+ORDER BY
+   UnansweredQuestionsCount DESC;
 ```
 
 **Result**
